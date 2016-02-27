@@ -1,0 +1,120 @@
+---
+title: "Predicting Weight Lifting Quality Exercise"
+author: "Toni Massó Jou"
+date: "26/02/2016"
+output: html_document
+---
+
+#Executive Summary
+In this document to predict the manner in which people do some exercise. This is the "classe" variable in the training set. I use any of the other variables to predict with. The variables are data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. The classe variable is a factor of 5 levels: A,B,C,D,E.  Class A means that the exercise was doing well, on the other hand, B,C,D,E means that people was doing some common mistake.
+
+#Loading libraries
+
+I use doMC to work in parallel. My computer has 4 cores. 
+```{r}
+library(caret)
+library(pgmm)
+library(rpart)
+library(gbm)
+library(lubridate)
+library(forecast)
+library(e1071)
+library(doMC)
+registerDoMC(cores = 4)
+```
+
+
+#Loading Data
+
+I load the data in two dataframes. One dataset is for training, the other is for testing. The testing dataset hsa only 20 test cases.
+
+I recognize NA literals as NA in the dataframes.
+```{r}
+setwd("~/R/workspace/PracticalMachinLearning/Projecte")
+training <- read.csv(file="Dades/pml-training.csv", header=TRUE, sep=",",na.strings=c('NA',''))
+testing <- read.csv(file="Dades/pml-testing.csv", header=TRUE, sep=",",na.strings=c('NA',''))
+```
+
+
+#Exploratory Analysis and Cleaning Data
+
+There are 19622 observations and 160 variables in the training dataset. 
+ 
+```{r}
+dim(training)
+dim(testing)
+```
+Most of the variables are NA in all the observations, or have all NA in testing dataset. 
+```{r}
+apply(is.na(training), 2, all)
+apply(is.na(testing), 2, all)
+
+```
+
+
+To clean data I drop all variables that have all the values as NA in training dataset and also in testing dataset.
+```{r}
+testing<-testing[, !apply(is.na(training), 2, all)]
+training<-training[,!apply(is.na(training), 2, all)]
+training<-training[,!apply(is.na(testing), 2, all)]
+testing<-testing[, !apply(is.na(testing), 2, all)]
+```
+Now I have only 60 variables:
+
+```{r}
+dim(training)
+dim(testing)
+```
+
+
+#Training Options and Cross Validation
+
+I split the data training in a dataset for training, and another dataset to test the model. The proportion is 3/4. 
+
+```{r}
+inTrain = createDataPartition(training$classe, p = 3/4)[[1]]
+validation = training[ inTrain,]
+training = training[ inTrain,]
+````
+I use Repeated Cross Validation, with 3 repeats and 10 k-fold (default).
+
+I think this option is the best to avoid overfiting. 
+
+```{r}
+ctrl <- trainControl(method = "repeatedcv",repeats = 3)
+```
+
+#Training models
+
+I choose boosting. It's a very flexible model, and because I use repeted cross validation the overfitting would be low.
+
+
+```{r}
+modBoost<-train(classe~., data = training,method = 'gbm',trControl=ctrl)
+valBoost<-predict(modBoost,validation)
+confusionMatrix(valBoost,validation$classe)
+```
+ 
+The model sems very good. But being realistic the test dataset would have less accuracy. 
+ 
+
+#Results of the Boosting model
+
+```{r}
+modBoost
+```
+
+
+#Predictions of the model
+
+
+```{r}
+predBoost<-predict(modBoost,testing)
+predBoost
+```
+
+Predictor says all the observations in testing dataset would have classe A. Wich means that people of the testing dataset are doing well the exercise.
+
+
+
+
