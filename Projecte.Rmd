@@ -53,11 +53,14 @@ apply(is.na(testing), 2, all)
 
 
 To clean data I drop all variables that have all the values as NA in training dataset and also in testing dataset.
+I drop the first 7 variables, they don't are good for analysis.
 ```{r}
 testing<-testing[, !apply(is.na(training), 2, all)]
 training<-training[,!apply(is.na(training), 2, all)]
 training<-training[,!apply(is.na(testing), 2, all)]
 testing<-testing[, !apply(is.na(testing), 2, all)]
+training<-training[,8:length(training)]
+testing<-testing[,8:length(testing)]
 ```
 Now I have only 60 variables:
 
